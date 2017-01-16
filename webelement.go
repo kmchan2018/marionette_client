@@ -24,6 +24,10 @@ type WebElement struct {
 	c  *Client
 }
 
+func (e *WebElement) Equals(e2 *WebElement) bool {
+	return e.id == e2.id
+}
+
 func (e *WebElement) Id() string {
 	return e.id
 }

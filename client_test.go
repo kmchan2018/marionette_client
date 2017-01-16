@@ -394,7 +394,7 @@ func TestNavigatorMethods(t *testing.T) {
 
 func TestWait(t *testing.T) {
 	client.SetContext(Context(CONTENT))
-	client.Navigate("http://www.w3schools.com/ajax/tryit.asp?filename=tryajax_get")
+	client.Navigate("http://www.w3schools.com/xml/tryit.asp?filename=tryajax_get")
 
 	timeout := time.Duration(10) * time.Second
 	condition := ElementIsPresent(By(ID), "stackH")
@@ -405,10 +405,31 @@ func TestWait(t *testing.T) {
 	}
 
 	v.Click()
+}
+
+func TestActiveFrame(t *testing.T) {
+	nullFrame, err := client.ActiveFrame()
+	if err != nil && nullFrame == nil {
+		t.Fatalf("%#v", err)
+	}
+
+	frame, err := client.FindElement(By(ID), "iframeResult")
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
 
 	err = client.SwitchToFrame(By(ID), "iframeResult")
 	if err != nil {
 		t.Fatalf("%#v", err)
+	}
+
+	newFrame, err := client.ActiveFrame();
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+
+	if !frame.Equals(newFrame) {
+		t.Fatalf("newFrame id: %v differs from expected frame id: %v", newFrame.Id(), frame.Id())
 	}
 
 	e, err := client.FindElement(By(TAG_NAME), "button")
@@ -474,6 +495,18 @@ func TestNotPresent(t *testing.T) {
 
 	if !ok {
 		t.Fatal("Element Was Found in ElementIsNotPresent test.")
+	}
+
+	//now test the error, condition never occurred.
+	condition = ElementIsPresent(By(ID), "non-existing-element")
+	ok, _, err := Wait(client).For(timeout).Until(condition)
+
+	if ok {
+		t.Fatal("Element Was Found and should not be found... What's happening")
+	}
+
+	if err != nil && err.Error() != "Condition never occurred." {
+		t.Fatalf("Unexpected error message returned: #%v", err)
 	}
 }
 
