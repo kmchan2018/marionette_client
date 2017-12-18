@@ -40,3 +40,4 @@ func (a *Action) KeyUp(milliseconds int) *Action {
 
 	return a
 }
+

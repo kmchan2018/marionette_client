@@ -10,8 +10,8 @@ type Point struct {
 }
 
 type Size struct {
-	Width  float32
-	Height float32
+	Width  float64
+	Height float64
 }
 
 type ElementRect struct {
@@ -76,30 +76,30 @@ func (e *WebElement) Click() {
 	clickElement(e.c, e.id)
 }
 
-func (e *WebElement) SendKeys(keys string) {
-	sendKeysToElement(e.c, e.id, keys)
+func (e *WebElement) SendKeys(keys string) error {
+	return sendKeysToElement(e.c, e.id, keys)
 }
 
 func (e *WebElement) Clear() {
 	clearElement(e.c, e.id)
 }
 
-func (e *WebElement) Location() (x float32, y float32, err error) {
+func (e *WebElement) Location() (*Point, error) {
 	r, err := getElementRect(e.c, e.id)
 	if err != nil {
-		return x, y, err
+		return nil, err
 	}
 
-	return r.X, r.Y, nil
+	return &r.Point, nil
 }
 
-func (e *WebElement) Size() (w float32, h float32, err error) {
+func (e *WebElement) Size() (*Size, error) {
 	r, err := getElementRect(e.c, e.id)
 	if err != nil {
-		return w, h, err
+		return nil, err
 	}
 
-	return r.Width, r.Height, nil
+	return &r.Size, nil
 }
 
 func (e *WebElement) Screenshot() (string, error) {
@@ -111,7 +111,18 @@ func (e *WebElement) UnmarshalJSON(data []byte) error {
 	var d map[string]map[string]string
 	err := json.Unmarshal([]byte(data), &d)
 	if err != nil {
-		return err
+		// firefox 53.0.3 - sometimes the value object does not bring the WEBDRIVER_ELEMENT_KEY, but the ID itself
+		// of the actual element, ie. when calling GetActiveFrame(), for that reason were giving unmashal one more
+		// chance before returning an error..
+		var d map[string]string
+		err := json.Unmarshal([]byte(data), &d)
+		if err != nil {
+			return err
+		}
+
+		e.id = d["value"]
+
+		return nil
 	}
 
 	e.id = d["value"][WEBDRIVER_ELEMENT_KEY]
