@@ -313,6 +313,51 @@ func (c *Client) WindowHandles() ([]string, error) {
 	return d, nil
 }
 
+// ChromeWindowHandles returns handles of existing chrome windows.
+func (c *Client) ChromeWindowHandles() ([]string, error) {
+	var result []string
+
+	if response, err := c.transport.Send("WebDriver:GetChromeWindowHandles", nil); err != nil {
+		return nil, err
+	} else if err := json.Unmarshal([]byte(response.Value), &result); err != nil {
+		return nil, err
+	} else {
+		return result, nil
+	}
+}
+
+// NewWindow creates a new content window and returns its handle. The mode
+// argument decides which chrome window the new content window will appear;
+// the value of "window" mean that the new content window will be created in
+// a brand-new chrome window. Otherwise, the new content window will be
+// created as a new tab in the current chrome window. The focus argument
+// specifies if the new content window will receive the focus. The private
+// argument specifies if the new content window is under incognito mode.
+//
+// Note that the mode argument is named "type" in the marionette protocol.
+// The change is due to obvious reason that the word "type" is reserved in
+// golang.
+func (c *Client) NewWindow(mode string, focus bool, private bool) (string, error) {
+	parameters := map[string]interface{}{}
+	result := map[string]interface{}{}
+
+	parameters["type"] = mode
+	parameters["focus"] = focus
+	parameters["private"] = private
+
+	if response, err := c.transport.Send("WebDriver:NewWindow", parameters); err != nil {
+		return "", err
+	} else if err := json.Unmarshal([]byte(response.Value), &result); err != nil {
+		return "", err
+	} else if handleval, ok := result["handle"]; ok == false {
+		return "", fmt.Errorf("cannot find window handle from response")
+	} else if handlestr, ok := handleval.(string); ok == false {
+		return "", fmt.Errorf("cannot cast window handle from response")
+	} else {
+		return handlestr, nil
+	}
+}
+
 // SwitchToWindow switch to specific window.
 func (c *Client) SwitchToWindow(name string) error {
 	_, err := c.transport.Send("WebDriver:SwitchToWindow", map[string]interface{}{"name": name})
@@ -321,6 +366,16 @@ func (c *Client) SwitchToWindow(name string) error {
 	}
 
 	return nil
+}
+
+// SwitchToWindowWithoutFocus set the given window to the current window
+// without focusing it.
+func (c *Client) SwitchToWindowWithoutFocus(name string) error {
+	parameters := map[string]interface{}{}
+	parameters["name"] = name
+	parameters["focus"] = false
+	_, err := c.transport.Send("WebDriver:SwitchToWindow", parameters)
+	return err
 }
 
 // WindowSize returns the window size
@@ -382,6 +437,12 @@ func (c *Client) SetWindowRect(rect WindowRect) error {
 	return nil
 }
 
+// MinimizeWindow minimize window.
+func (c *Client) MinimizeWindow() error {
+	_, err := c.transport.Send("WebDriver:MinimizeWindow", nil)
+	return err
+}
+
 // MaximizeWindow maximizes window.
 func (c *Client) MaximizeWindow() error {
 	_, err := c.transport.Send("WebDriver:MaximizeWindow", nil)
@@ -400,6 +461,12 @@ func (c *Client) CloseWindow() (*Response, error) {
 	}
 
 	return r, nil
+}
+
+// CloseChromeWindow closes the current chrome window.
+func (c *Client) CloseChromeWindow() (*Response, error) {
+	response, err := c.transport.Send("WebDriver:CloseChromeWindow", nil)
+	return response, err
 }
 
 ////////////
@@ -717,6 +784,22 @@ func (c *Client) ExecuteScript(script string, args []interface{}, timeout uint, 
 	}
 
 	return response, nil
+}
+
+// ExecuteAsyncScript executes the given javascript code. Unlike ExecuteScript,
+// the result is returned by a callback function provided as the last argument.
+func (c *Client) ExecuteAsyncScript(script string, args []interface{}, timeout uint, newSandbox bool) (*Response, error) {
+	parameters := map[string]interface{}{}
+	parameters["scriptTimeout"] = timeout
+	parameters["script"] = script
+	parameters["args"] = args
+	parameters["newSandbox"] = newSandbox
+
+	if response, err := c.transport.Send("WebDriver:ExecuteAsyncScript", parameters); err != nil {
+		return nil, err
+	} else {
+		return response, nil
+	}
 }
 
 /////////////

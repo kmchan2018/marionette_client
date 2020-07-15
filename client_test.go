@@ -71,6 +71,9 @@ func TestInit(t *testing.T) {
 		t.Run("ExecuteScriptTest", ExecuteScriptTest)
 		t.Run("ExecuteScriptWithArgsTest", ExecuteScriptWithArgsTest)
 
+		t.Run("ExecuteAsyncScriptTest", ExecuteAsyncScriptTest)
+		t.Run("ExecuteAsyncScriptWithDelayTest", ExecuteAsyncScriptWithDelayTest)
+
 		t.Run("GetTitleTest", GetTitleTest)
 
 		t.Run("FindElementTest", FindElementTest)
@@ -78,6 +81,7 @@ func TestInit(t *testing.T) {
 		t.Run("SendKeysTest", SendKeysTest)
 		t.Run("FindElementsTest", FindElementsTest)
 
+		t.Run("NewWindowTest", NewWindowTest)
 		t.Run("CurrentChromeWindowHandleTest", CurrentChromeWindowHandleTest)
 		t.Run("WindowHandlesTest", WindowHandlesTest)
 
@@ -368,6 +372,28 @@ func ExecuteScriptWithArgsTest(t *testing.T) {
 	t.Log(r.Value)
 }
 
+func ExecuteAsyncScriptTest(t *testing.T) {
+	script := "const callback = arguments[0]; callback('yes');"
+	args := []interface{}{}
+	r, err := client.ExecuteAsyncScript(script, args, TIMEOUT, false)
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+
+	t.Log(r.Value)
+}
+
+func ExecuteAsyncScriptWithDelayTest(t *testing.T) {
+	script := "const callback = arguments[0]; setTimeout(() => { callback('yes'); }, 2000);"
+	args := []interface{}{}
+	r, err := client.ExecuteAsyncScript(script, args, TIMEOUT, false)
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+
+	t.Log(r.Value)
+}
+
 func GetTitleTest(t *testing.T) {
 	title, err := client.Title()
 	if err != nil {
@@ -487,6 +513,15 @@ func FindElementsTest(t *testing.T) {
 	}
 
 	t.Log(len(elements))
+}
+
+func NewWindowTest(t *testing.T) {
+	handle, err := client.NewWindow("tab", false, false)
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+
+	t.Log(handle)
 }
 
 func CurrentChromeWindowHandleTest(t *testing.T) {
